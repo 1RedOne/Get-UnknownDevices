@@ -37,9 +37,9 @@ In this case, the cmdlet was run without any parameters which returns a list of 
  
      .\Get-UnknownDevices.ps1 -Import C:\temp\DriverExport.csv
 
-    VendorID DeviceID DevMgrName                         LikelyName                       
-    -------- -------- ----------                         ----------                       
-    1186     4300     DGE-530T Gigabit Ethernet Adapter. Used on DGE-528T Gigabit adapt...
+     VendorID DeviceID DevMgrName                         LikelyName                       
+     -------- -------- ----------                         ----------                       
+     1186     4300     DGE-530T Gigabit Ethernet Adapter. Used on DGE-528T Gigabit adapt...
     
     
 #Changes / troubleshooting
