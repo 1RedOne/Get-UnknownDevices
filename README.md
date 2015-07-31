@@ -1,5 +1,5 @@
 # Get-UnknownDevices
-#####Featured in my blog on FoxDeploy.com
+#####Featured in my blog on [FoxDeploy.com - Using PowerShell to find driver and devices for Device Manager](http://foxdeploy.com/2015/07/31/using-powershell-to-find-drivers-for-device-manager/)
 When building a new system image for MDT or SCCM, it is common to need to lay down a new OS image and troubleshoot missing drivers.  This tool simplifies detemining what device is really meant by 'Unknown Device' in the Device Manager
 
 
