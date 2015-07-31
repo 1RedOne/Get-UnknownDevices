@@ -5,6 +5,10 @@ When building a new system image for MDT or SCCM, it is common to need to lay do
 
 Based [.off of this great post by Johan Arwidmark of Deployment Research](http://deploymentresearch.com/Research/Post/306/Back-to-basics-Finding-Lenovo-drivers-and-certify-hardware-control-freak-style), this cmdlet can be used on a new system to help locate the names and IDs of device drivers.  The Cmdlet can be used without parameters, which will return a listing of all the devices with missing drivers.  Or, it can be run on a machine without web acess, using -Export to export a file.  The file should then be copied to a machine with web access where the -Import param can be used to import this file
 
+This tool aims to help you easily solve device manager woes like this one
+
+![alt tag](https://github.com/1RedOne/Get-UnknownDevices/blob/master/img/unhappy_device_manager.png)
+
 #How to use
 
 ####Standalone mode
