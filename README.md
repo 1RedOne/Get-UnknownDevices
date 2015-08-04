@@ -42,7 +42,20 @@ In this case, the cmdlet was run without any parameters which returns a list of 
      1186     4300     DGE-530T Gigabit Ethernet Adapter. Used on DGE-528T Gigabit adapt...
     
     
-#Changes / troubleshooting
+###Change log
+
+#####V 1.1 - 8/04/2015 - Added support for -Test switch, -Cab Param
+Added the Test Switch to pull all ethernet devices to allow for testing of code logic
+
+Added -Cab param to allow the user to provide an unzipped .cab file path.  This tool will then search through the files to find the right
+drivers and driver folders.
+
+#####v 1.0 - Release
 Currently this tool only parses devices and hardware IDs in the format of DEV_#### or VEN_####, in a future version, support for PID or other ID types will be added.
 
+### To-do
+
+* Add parameter sets, where -CAB forces the user to specify a Cab path
+* add support for unzipping actual cabs files
+* rewrite help docs
 
