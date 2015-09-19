@@ -1,4 +1,4 @@
-﻿<#
+<#
 .Synopsis
    When building a new system image for MDT or SCCM, it is common to need to lay down a new OS image and troubleshoot missing drivers.  This tool simplifies detemining what device is really meant by 'Unknown Device' in the Device Manager
 .DESCRIPTION
@@ -119,7 +119,9 @@ process{
             Write-Verbose "Searching for devices with Vendor ID of $vendorID and Device ID of $deviceID "
 
             $url = "http://www.pcidatabase.com/search.php?device_search_str=$deviceID&device_search=Search"
-            $res = Invoke-WebRequest $url -UserAgent InternetExplorer
+            try {$res = Invoke-WebRequest $url -UserAgent InternetExplorer}
+         catch [System.NotSupportedException]{Write-warning "You need to launch Internet Explorer once before running this";return}
+         
             $matches = ($res.ParsedHtml.getElementsByTagName('p') | select -expand innerHtml).Split()[1] 
             Write-Verbose "Found $matches matches"
 
@@ -166,4 +168,3 @@ $path = get-childitem $cabpath -recurse -include "*.inf" | select-string -patter
 
 "The drivers for the device $($device.Name) appear to be $($driver.Filename -join ',') which are found in this dir: $path"
 #>
-
