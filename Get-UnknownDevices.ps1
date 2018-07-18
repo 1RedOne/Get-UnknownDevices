@@ -118,7 +118,7 @@ process{
 
             Write-Verbose "Searching for devices with Vendor ID of $vendorID and Device ID of $deviceID "
 
-            $url = "http://www.pcidatabase.com/search.php?device_search_str=$deviceID&device_search=Search"
+            $url = "https://devicehunt.com/search/type/pci/vendor/$vendorID/device/$deviceID"
             try {$res = Invoke-WebRequest $url -UserAgent InternetExplorer}
          catch [System.NotSupportedException]{Write-warning "You need to launch Internet Explorer once before running this";return}
          
