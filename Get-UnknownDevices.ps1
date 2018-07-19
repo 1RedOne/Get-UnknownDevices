@@ -37,60 +37,49 @@ VendorID DeviceID DevMgrName                         LikelyName
    start http://deploymentresearch.com/Research/Post/306/Back-to-basics-Finding-Lenovo-drivers-and-certify-hardware-control-freak-style
 #>
 Function Get-UnknownDevices{
-[CmdletBinding()]
-Param([ValidateScript({test-path (Split-Path $path)})]$Export,
-      [ValidateScript({test-path $path})]$Import,
-      [ValidateScript({test-path $path})]$Cab,
-      [switch]$test)
-begin {
-        $i = 0
-        
+    [CmdletBinding()]
+    Param([ValidateScript({test-path (Split-Path $path)})]
+            $Export,
+          [ValidateScript({test-path $path})]
+            $Import,
+          [ValidateScript({test-path $path})]
+            $Cab,
+          [switch]$test
+          )
+    begin {
+        #In import mode, we'll pull records from a CSV file
         if ($Import){
             $devices = Import-Csv $import
-            }
-            else {
-            
+        }
+        else {
+            #In testing mode, pull all devices
             if ($Test){
-                #For Testing, pull all devices
-                $devices = Get-WmiObject Win32_PNPEntity | Where-Object{$_.ConfigManagerErrorCode -eq 0} | Select Name, DeviceID
+                $devices = Get-WmiObject Win32_PNPEntity | Where-Object {$_.ConfigManagerErrorCode -eq 0} | Select-Object Name, DeviceID
                 #For testing, I'm purposefully pulling Ethernet drivers
                 $unknown_Dev = $devices | where Name -like "*int*"                
                 }
-                else{
-                    #if not running in -Test
-                    #For Prod, Query WMI and get all of the devices with missing drivers
-                    $devices = Get-WmiObject Win32_PNPEntity | Where-Object{$_.ConfigManagerErrorCode -ne 0} | Select Name, DeviceID
-                    #For production
-                    $unknown_Dev = $devices
-                }
+            else{
+                #For Prod, Query WMI and get all of the devices with missing drivers
+                $devices = Get-WmiObject Win32_PNPEntity | Where-Object {$_.ConfigManagerErrorCode -ne 0} | Select-Object Name, DeviceID
+                #For production
+                $unknown_Dev = $devices
+            }
         }
-
-        
-
-        
 
         if ($Export){
             $unknown_Dev | export-csv $Export 
             Write-host "Export file created at $Export, please copy to a machine with web access, and rerun this tool, using the -Import flag"
             BREAK
             }
-        
-        
-        
 
-        $unknown_Dev | % {$i++}
-        $count = $i
-
-        Write-verbose "$i unknown devices found on $env:COMPUTERNAME"
+        Write-verbose "$($unknown_Dev.Count)unknown devices found on $env:COMPUTERNAME"
         If ($VerbosePreference -eq 'Continue'){
             $unknown_Dev | Format-Table}
 
             
         $FoldersToImport = new-object System.Collections.ArrayList
-}
-
-
-process{
+    }
+    process{
         forEach ($device in $unknown_Dev){
             Write-Debug "to test the current `$device, $($device.Name), stop here"
 
@@ -103,68 +92,47 @@ process{
                 Continue}
 
             if ($cab){
-            #need to filter to include only those with matching $vendorId too
-            $path = get-childitem $cabpath -recurse -include "*.inf" | select-string -pattern "ControlFlags" | gci | select-string $deviceID -list| gci | select-string -pattern $VendorID -list | Tee-Object -Variable Driver |  % {split-path $_.Path -Parent }
+                #Honestly I don't remember what the hell this is doing anymore
+                $path = Get-ChildItem $cabpath -Recurse -Include "*.inf" | 
+                            Select-String -pattern "ControlFlags" | 
+                                Get-ChildItem | 
+                                    select-string $deviceID -list| Get-ChildItem | 
+                                        select-string -pattern $VendorID -list | 
+                                                Tee-Object -Variable Driver |  % {split-path $_.Path -Parent }
 
-            $path | select -unique | ForEach {$FoldersToImport.add($_) | out-null}
+                $null = $path | select -unique | ForEach {$FoldersToImport.add($_)}
 
-            #drivers / folders
-            [pscustomobject]@{Device=$device.Name;
-                    DriverFiles=($driver.Filename |Select -unique) -join ',';
-                    DriverFolders=($path | select -unique )-join "`n"}
-            #"The drivers for the device $($device.Name) appear to be $($driver.Filename -join ',') which are found in this dir: $path"
-            Continue
+                #drivers / folders
+                [pscustomobject]@{Device=$device.Name;
+                        DriverFiles=($driver.Filename |Select -unique) -join ',';
+                        DriverFolders=($path | select -unique )-join "`n"}                
+                Continue
             }
 
             Write-Verbose "Searching for devices with Vendor ID of $vendorID and Device ID of $deviceID "
 
             $url = "https://devicehunt.com/search/type/pci/vendor/$vendorID/device/$deviceID"
-            try {$res = Invoke-WebRequest $url -UserAgent InternetExplorer}
-         catch [System.NotSupportedException]{Write-warning "You need to launch Internet Explorer once before running this";return}
-         
-            $matches = ($res.ParsedHtml.getElementsByTagName('p') | select -expand innerHtml).Split()[1] 
-            Write-Verbose "Found $matches matches"
-
-            $htmlCells = $res.ParsedHtml.getElementsByTagName('tr')  | select -skip 4 -Property *html*
-            Write-Debug "test `$htmlCells for the right values $htmlCells"
             
-            #
-            $matchingDev = ($htmlCells.InnerHtml | Select-String -Pattern $vendorID | select -expand Line).ToString().Split("`n")
-            if ($matchingDev.count -ge 1){
-                    [pscustomobject]@{VendorID=$vendorID;DeviceID=$deviceID;DevMgrName=$device.Name;LikelyName=$matchingDev[1] -replace '<TD>','' -replace '</TD>',''}}
-                else{CONTINUE}
-
+            try {
+                $res = Invoke-WebRequest $url -UserAgent InternetExplorer
                 }
+            catch [System.NotSupportedException]{
+                Write-warning "You need to launch Internet Explorer once before running this"
+                return
+            }
+            
+            $matchingDevices = Get-HTMLTable -WebRequest $res -TableNumber 1
+            
+            if (-not([string]::IsNullOrEmpty($matchingDevices))){
+                [pscustomobject]@{VendorName=$matchingDevices.'Vendor Name';VendorID=$matchingDevices.'Vendor ID';DeviceID=$matchingDevices.'Device ID';DeviceName=$matchingDevices.'Device Name';}
+            }
+            
+            }
+    }
+    end{
+        if ($Cab){
+            "To enable all of the unknown devices on your system, import drivers from these paths"
+            $FoldersToImport | Select-Object -Unique
+            }
+        }
 }
-end{
-
-    "To enable all of the unknown devices on your system, import drivers from these paths"
-    $FoldersToImport | select -Unique
-}
-}
-
-<#
-To do :
-
-Add parameter sets, where -CAB forces the user to specify a Cab path
-
-add support for unzipping actual cabs files
-
-rewrite help docs
-
-#>
-
-
-<#
-#experiemental weird stuff below
-
-#Finds infs with matching device IDs
-get-childitem $cabpath -recurse -include "*.inf" | select-string -pattern $deviceID -list| select Path
-
-#need to filter to include only those with matching $vendorId too
-$path = get-childitem $cabpath -recurse -include "*.inf" | select-string -pattern "ControlFlags" | gci | select-string $deviceID -list| gci | select-string -pattern $VendorID -list | Tee-Object -Variable Driver |  % {split-path $_.Path -Parent }
-
-#drivers / folders
-
-"The drivers for the device $($device.Name) appear to be $($driver.Filename -join ',') which are found in this dir: $path"
-#>
